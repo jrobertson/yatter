@@ -6,7 +6,7 @@
 
 require 'twitter'
 require 'dynarex-password'
-require 'dws-registry'
+require 'xml-registry'
 
 class Yatter < Twitter::REST::Client
   
