@@ -10,17 +10,14 @@ require 'dws-registry'
 
 class Yatter < Twitter::REST::Client
   
-  def initialize(reg, user: nil, lookup_file: nil)
+  def initialize(reg, user: nil)
 
-    if user.nil? or lookup_file.nil? then
-      raise 'You must enter a user and lookup_file' 
-    end
+    raise 'You must enter a user' if user.nil? 
 
-    @lookup_file = lookup_file
+    e = reg.get_key('hkey_apps/microblog/twitter/' + user)
+    @lookup_file = e.text('lookup_file')
     
-    super() do |config|            
-
-      e = reg.get_key('hkey_apps/microblog/twitter/' + user)
+    super() do |config|                  
       
       config.consumer_key        = e.text('ctoken')
       config.consumer_secret     = decipher(e.text('csecret'))
