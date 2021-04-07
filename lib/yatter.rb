@@ -11,26 +11,39 @@ require 'dynarex-password'
 
 class Yatter < Twitter::REST::Client
   
-  def initialize(reg, user: nil)
+  def initialize(reg, user: nil, debug: false)
 
     raise 'You must enter a user' if user.nil? 
 
+    @debug = debug
+    
     key = 'hkey_apps/microblog/twitter/'
     e = reg.get_key(key + user)
     @lookup_file = e.text('lookup_file').to_s
     
+    consumer_key        = e.text('ctoken').to_s
+    consumer_secret     = decipher(e.text('csecret').to_s)
+    access_token        = e.text('atoken').to_s
+    access_token_secret = decipher(e.text('asecret').to_s)
+    
+    if @debug then
+      puts [consumer_key, consumer_secret, access_token, access_token_secret]\
+          .inspect 
+    end    
+    
     super() do |config|                  
       
-      config.consumer_key        = e.text('ctoken').to_s
-      config.consumer_secret     = decipher(e.text('csecret').to_s)
-      config.access_token        = e.text('atoken').to_s
-      config.access_token_secret = decipher(e.text('asecret').to_s)
+      config.consumer_key        = consumer_key
+      config.consumer_secret     = consumer_secret
+      config.access_token        = access_token
+      config.access_token_secret = access_token_secret
+      
             
     end
     
-    if e.text('last_follower').to_s.empty? then
-      reg.set_key(key + 'last_follower', last_follower) 
-    end
+    #if e.text('last_follower').to_s.empty? then
+    #  reg.set_key(key + 'last_follower', last_follower) 
+    #end
 
   end
   
