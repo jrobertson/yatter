@@ -6,10 +6,35 @@
 
 require 'twitter'
 require 'dynarex-password'
-
+require 'remote_dwsregistry'
 
 
 class Yatter < Twitter::REST::Client
+  
+  def self.fetch_credentials(regx, user)
+    
+    reg = if regx.is_a? String then
+      RemoteDwsRegistry.new domain: regx
+    else
+      regx
+    end
+
+    decipher = ->(lookup_file, s) {
+      DynarexPassword.new.reverse_lookup(s, lookup_file)
+    }
+    
+    key = 'hkey_apps/microblog/twitter/'
+    e = reg.get_key(key + user)
+    lookup_file = e.text('lookup_file').to_s
+    
+    consumer_key        = e.text('ctoken').to_s
+    consumer_secret     = decipher.call(lookup_file, e.text('csecret').to_s)
+    access_token        = e.text('atoken').to_s
+    access_token_secret = decipher.call(lookup_file, e.text('asecret').to_s)
+    
+    [consumer_key, consumer_secret, access_token, access_token_secret]
+    
+  end    
   
   def initialize(reg, user: nil, debug: false)
 
@@ -17,14 +42,7 @@ class Yatter < Twitter::REST::Client
 
     @debug = debug
     
-    key = 'hkey_apps/microblog/twitter/'
-    e = reg.get_key(key + user)
-    @lookup_file = e.text('lookup_file').to_s
-    
-    consumer_key        = e.text('ctoken').to_s
-    consumer_secret     = decipher(e.text('csecret').to_s)
-    access_token        = e.text('atoken').to_s
-    access_token_secret = decipher(e.text('asecret').to_s)
+    consumer_key, consumer_secret, access_token, access_token_secret = Yatter.fetch_credentials(reg, user)
     
     if @debug then
       puts [consumer_key, consumer_secret, access_token, access_token_secret]\
@@ -37,8 +55,7 @@ class Yatter < Twitter::REST::Client
       config.consumer_secret     = consumer_secret
       config.access_token        = access_token
       config.access_token_secret = access_token_secret
-      
-            
+                  
     end
     
     #if e.text('last_follower').to_s.empty? then
@@ -89,9 +106,4 @@ class Yatter < Twitter::REST::Client
     super(msg)
   end
 
-  private
-
-  def decipher(s)
-    DynarexPassword.new.reverse_lookup(s, @lookup_file)
-  end
 end
